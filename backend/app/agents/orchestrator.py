@@ -8,6 +8,9 @@ def route_request(user_message: str):
 
     system_prompt = """
 You are an AI orchestrator for a clinical scheduling system.
+If booking an appointment, try to extract:
+patient_name, patient_email, doctor_name, date, time
+
 
 Return a JSON object with:
 - intent: one of [check_availability, book_appointment, reschedule_appointment, send_notification]
