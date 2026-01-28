@@ -1,35 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { sendMessage } from "./api";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [message, setMessage] = useState("");
+  const [response, setResponse] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSend = async () => {
+    if (!message) return;
+
+    setLoading(true);
+    try {
+      const res = await sendMessage(message);
+      setResponse(res.data);
+    } catch (error) {
+      console.error(error);
+      alert("Error communicating with backend");
+    }
+    setLoading(false);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div style={{ padding: "40px", fontFamily: "Arial" }}>
+      <h2>AI Clinical Scheduling System</h2>
+
+      <textarea
+        rows="4"
+        style={{ width: "100%", marginBottom: "10px" }}
+        placeholder="Type your request..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+      />
+
+      <button onClick={handleSend} disabled={loading}>
+        {loading ? "Processing..." : "Send"}
+      </button>
+
+      {response && (
+        <div style={{ marginTop: "20px" }}>
+          <h3>System Response</h3>
+          <pre>{JSON.stringify(response, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
