@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { sendMessage } from "./api";
+import { streamMessage } from "./api";
 
 function App() {
   const [message, setMessage] = useState("");
@@ -8,11 +9,14 @@ function App() {
 
   const handleSend = async () => {
     if (!message) return;
-
+    setResponse(null);
     setLoading(true);
     try {
-      const res = await sendMessage(message);
-      setResponse(res.data);
+      // const res = await sendMessage(message);
+      // setResponse(res.data);
+      await streamMessage(message, (chunk) => {
+      setResponse((prev) => prev + chunk);
+    });
     } catch (error) {
       console.error(error);
       alert("Error communicating with backend");
@@ -37,9 +41,10 @@ function App() {
       </button>
 
       {response && (
-        <div style={{ marginTop: "20px" }}>
+        <div style={{ marginTop: "20px", whiteSpace: "pre-wrap" }}>
           <h3>System Response</h3>
-          <pre>{JSON.stringify(response, null, 2)}</pre>
+          {response}
+          {/* <pre>{JSON.stringify(response, null, 2)}</pre> */}
         </div>
       )}
     </div>

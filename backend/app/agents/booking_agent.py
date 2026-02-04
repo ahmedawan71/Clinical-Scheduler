@@ -1,4 +1,5 @@
 from app.database import supabase
+from app.agents.notification_agent import send_notification
 
 def book_appointment(parameters: dict):
     data = {
@@ -11,6 +12,20 @@ def book_appointment(parameters: dict):
     }
 
     response = supabase.table("appointments").insert(data).execute()
+
+    send_notification({
+        "email": parameters.get("patient_email"),
+        "subject": "Appointment Confirmed",
+        "message": f"""
+Your appointment has been confirmed.
+
+Doctor: {parameters.get('doctor_name')}
+Date: {parameters.get('date')}
+Time: {parameters.get('time')}
+
+Thank you.
+"""
+    })
 
     return {
         "status": "confirmed",
