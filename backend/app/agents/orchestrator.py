@@ -40,4 +40,7 @@ Example:
         temperature=0
     )
 
-    return json.loads(response.choices[0].message.content)
+    try:
+        return json.loads(response.choices[0].message.content)
+    except json.JSONDecodeError:
+        return {"intent": "unknown", "parameters": {}, "error": "Failed to parse intent"}

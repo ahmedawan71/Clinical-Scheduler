@@ -1,12 +1,15 @@
 from typing import Any
 from app.database import supabase
+import asyncio
 
-def check_availability(doctor_name: str, date: str):
-    response = supabase.table("appointments") \
-        .select("appointment_time") \
-        .eq("doctor_name", doctor_name) \
-        .eq("appointment_date", date) \
-        .execute()
+async def check_availability(doctor_name: str, date: str):
+    response = await asyncio.to_thread(
+        lambda: supabase.table("appointments")
+            .select("appointment_time")
+            .eq("doctor_name", doctor_name)
+            .eq("appointment_date", date)
+            .execute()
+    )
 
     booked_times: list[str] = []
     data: Any = response.data

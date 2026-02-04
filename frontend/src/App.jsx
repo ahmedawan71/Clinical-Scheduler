@@ -4,18 +4,18 @@ import { streamMessage } from "./api";
 
 function App() {
   const [message, setMessage] = useState("");
-  const [response, setResponse] = useState(null);
+  const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSend = async () => {
     if (!message) return;
-    setResponse(null);
+    setResponse("");
     setLoading(true);
     try {
       // const res = await sendMessage(message);
       // setResponse(res.data);
       await streamMessage(message, (chunk) => {
-      setResponse((prev) => prev + chunk);
+      setResponse((prev) => (prev || "") + chunk);
     });
     } catch (error) {
       console.error(error);

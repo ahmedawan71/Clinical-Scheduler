@@ -4,6 +4,10 @@ from app.agents.reschedule_agent import reschedule_appointment
 from app.agents.notification_agent import send_notification
 
 def execute(intent: str, parameters: dict):
+    
+    if not intent or not isinstance(parameters, dict):
+        return {"error": "Invalid request format"}
+    
     if intent == "check_availability":
         return check_availability(
             parameters.get("doctor_name", ""),
