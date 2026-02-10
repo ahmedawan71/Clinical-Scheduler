@@ -2,6 +2,7 @@ from app.database import supabase
 from app.utils.email_service import send_email
 from app.utils.logger import agent_logger
 from datetime import datetime, timedelta
+from app.agents.waitlist_agent import check_waitlist_on_cancellation
 
 CANCELLATION_NOTICE_HOURS = 24
 
@@ -72,12 +73,20 @@ def cancel_appointment(appointment_id: str = None, patient_name: str = None,
         if update_response.data:
             agent_logger.info(f"Appointment cancelled: {appointment['id']}")
             
+            #check waitlist for the freed slot
+            waitlist_result = check_waitlist_on_cancellation(
+                appointment["doctor_name"],
+                appointment["appointment_date"],
+                appointment["appointment_time"]
+            )
+            
+            
             # Send notification
             if appointment.get("patient_email"):
                 send_email(
                     to_email=appointment["patient_email"],
                     subject="Appointment Cancelled",
-                    body=f"""Your appointment with Dr. {appointment['doctor_name']} on {appointment['appointment_date']} at {appointment['appointment_time']} has been cancelled.
+                    body=f"""Your appointment with {appointment['doctor_name']} on {appointment['appointment_date']} at {appointment['appointment_time']} has been cancelled.
 
 Reason: {reason or 'Not specified'}
 
@@ -93,8 +102,10 @@ If you would like to reschedule, please contact us or use our booking system."""
                     "time": appointment["appointment_time"],
                     "doctor": appointment["doctor_name"]
                 },
-                "slot_freed": True
+                "slot_freed": True,
+                "waitlist_notified" : waitlist_result.get("patients_notified", [])
             }
+            
     except Exception as e:
         agent_logger.error(f"Cancellation failed: {str(e)}")
         return {"success": False, "error": f"Cancellation failed: {str(e)}"}
