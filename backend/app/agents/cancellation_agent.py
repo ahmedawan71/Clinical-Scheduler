@@ -43,7 +43,7 @@ def cancel_appointment(appointment_id: str = None, patient_name: str = None,
     
     # Check cancellation policy
     apt_datetime = datetime.strptime(
-        f"{appointment['appointment_date']} {appointment['appointment_time']}", 
+        f"{appointment['appointment_date']} {appointment['appointment_time']}",  
         "%Y-%m-%d %H:%M"
     )
     hours_until = (apt_datetime - datetime.now()).total_seconds() / 3600
