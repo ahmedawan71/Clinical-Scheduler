@@ -39,7 +39,7 @@ def check_availability(doctor_name: str, date: str):
         "success": True,
         "doctor": doctor_name,
         "date": date,
-        "available_slots": available
+        "available_slots": available,
         "booked_count": len(booked_slots),
         "available_count": len(available),
         "utilization": f"{len(booked_slots)}/{len(all_slots)} time blocks used"
@@ -76,3 +76,50 @@ def find_next_available(doctor_name:str, preferred_date: str, days_to_search: in
         "error": f"No available slots found for Dr. {doctor_name} within {days_to_search} days",
         "suggestion": "Try a different doctor or increase the search range"
     }        
+    
+def suggest_alternative_doctors(specialty: str, date: str, preferred_time: str = None):
+    """Suggest other doctors when preferred one is unavailable"""
+    
+    if not specialty or not date:
+        return {"success": False, "error": "Specialty and date required"}
+    
+    # Get doctors with matching specialty
+    doctors_response = supabase.table("doctors").select("*").eq(
+        "specialty", specialty
+    ).eq("active", True).execute()
+    
+    if not doctors_response.data:
+        return {
+            "success": False,
+            "error": f"No doctors found with specialty: {specialty}"
+        }
+    
+    available_doctors = []
+    
+    for doctor in doctors_response.data:
+        availability = check_availability(doctor["name"], date)
+        
+        if availability.get("success") and availability.get("available_slots"):
+            slots = availability["available_slots"]
+            
+            # Prioritize if preferred time is available
+            has_preferred = preferred_time in slots if preferred_time else False
+            
+            available_doctors.append({
+                "name": doctor["name"],
+                "specialty": specialty,
+                "available_slots": slots[:5],
+                "has_preferred_time": has_preferred,
+                "total_available": len(slots)
+            })
+    
+    # Sort by availability (most slots first)
+    available_doctors.sort(key=lambda x: (-x["has_preferred_time"], -x["total_available"]))
+    
+    return {
+        "success": True,
+        "specialty": specialty,
+        "date": date,
+        "available_doctors": available_doctors,
+        "total_found": len(available_doctors)
+    }
