@@ -4,7 +4,9 @@ from app.agents.reschedule_agent import reschedule_appointment
 from app.agents.cancellation_agent import cancel_appointment, confirm_late_cancellation
 from app.agents.patient_agent import get_patient_appointments, get_appointment_history
 #from app.agents.notification_agent import send_notification
-import app.utils.logger as agent_logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 def execute(intent: str, parameters: dict):
     
@@ -41,14 +43,14 @@ def execute(intent: str, parameters: dict):
     handler = handlers.get(intent)
     
     if not handler:
-        agent_logger.warning(f"Unknown intent received: {intent}")
+        logger.warning(f"Unknown intent received: {intent}")
         return {"success": False, "error": f"Unknown intent: {intent}"}
     
     try:
-        agent_logger.info(f"Executing intent: {intent} with parameters: {parameters}")
+        logger.info(f"Executing intent: {intent} with parameters: {parameters}")
         result = handler(parameters)
         return result
     except Exception as e:
-        agent_logger.error(f"Error failed for {intent}: {str(e)}")
+        logger.error(f"Error failed for {intent}: {str(e)}")
         return {"success": False, "error": f"Execution failed: {str(e)}"}
     return {"error": "Unknown intent"}
