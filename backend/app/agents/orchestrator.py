@@ -10,7 +10,7 @@ def route_request(user_message: str, session_id: str = "default"):
     """
 
     context = context_store.get_or_create(session_id)
-    
+
     system_prompt = f"""You are an AI orchestrator for a clinical scheduling system that determines user intent.
 
 Current date/time: {datetime.now().strftime("%Y-%m-%d %H:%M")}
@@ -34,6 +34,7 @@ SUPPORTED INTENTS:
 - find_next_available: Find next open slot (needs: doctor_name, preferred_date)
 - suggest_alternatives: Find other doctors (needs: specialty, date)
 - general_inquiry: General questions about the system
+- get optimal slots: Get best time slots based on doctor schedule and patient preferences (needs: doctor_name, date, duration_minutes)
 
 RESPONSE FORMAT (JSON only):
 {{
@@ -74,24 +75,40 @@ RESPONSE FORMAT (JSON only):
         )
         
         result = json.loads(response.choices[0].message.content)
-    
-    #update context with extracted entities
-        for key, value in result.get("extracted_entities", {}).items():
+
+        # 1) Update context with extracted entities (if provided)
+        for key, value in (result.get("extracted_entities") or {}).items():
             if value:
                 context.update_entity(key, value)
-        
-        #fill in parameters with context if missing
-        result["parameters"] = _fill_from_context(result["parameters"], context)
-        
-        agent_logger.info(f"Routed to intent: {result.get('intent')} with confidence: {result.get('confidence', 'N/A')}")
 
+        # 2) Fill in parameters with context if missing
+        result["parameters"] = _fill_from_context(result.get("parameters") or {}, context)
+
+        # 3) ALSO persist key entities from parameters (covers models that omit extracted_entities)
+        params = result["parameters"]
+        for key in ("patient_name", "doctor_name", "date", "time", "appointment_type"):
+            if params.get(key):
+                context.update_entity(key, params.get(key))
+
+        # Helpful alias: if intent uses preferred_date, store it as date context too
+        if params.get("preferred_date"):
+            context.update_entity("date", params.get("preferred_date"))
+
+        agent_logger.info(
+            f"Routed to intent: {result.get('intent')} with confidence: {result.get('confidence', 'N/A')}"
+        )
         return result
-    
-    except json.JSONDecodeError  as e:
-        agent_logger.error(f"Failed to parse AI response: {str(e)}")
-        return {"intent": "unknown", "parameters": {},"needs_clarification": True, "clarification_question": "Could you please clarify your request?","error": "Failed to parse intent"}
 
-    
+    except json.JSONDecodeError as e:
+        agent_logger.error(f"Failed to parse AI response: {str(e)}")
+        return {
+            "intent": "unknown",
+            "parameters": {},
+            "needs_clarification": True,
+            "clarification_question": "Could you please clarify your request?",
+            "error": "Failed to parse intent",
+        }
+
     except Exception as e:
         agent_logger.error(f"Orchestration error: {e}")
         return {
