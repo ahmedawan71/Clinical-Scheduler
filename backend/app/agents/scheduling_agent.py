@@ -123,3 +123,43 @@ def suggest_alternative_doctors(specialty: str, date: str, preferred_time: str =
         "available_doctors": available_doctors,
         "total_found": len(available_doctors)
     }
+    
+def get_optimal_slots(doctor_name: str, date: str, duration_minutes: int = 30):
+    """Get slots that can accommodate specific duration"""
+    
+    availability = check_availability(doctor_name, date)
+    
+    if not availability.get("success"):
+        return availability
+    
+    available = availability["available_slots"]
+    optimal_slots = []
+    
+    blocks_needed = (duration_minutes + 29) // 30  # Ceiling division
+    
+    for i, slot in enumerate(available):
+        # Check if we have enough consecutive slots
+        consecutive = 1
+        slot_time = datetime.strptime(slot, "%H:%M")
+        
+        for j in range(1, blocks_needed):
+            next_expected = (slot_time + timedelta(minutes=30*j)).strftime("%H:%M")
+            if i + j < len(available) and available[i + j] == next_expected:
+                consecutive += 1
+            else:
+                break
+        
+        if consecutive >= blocks_needed:
+            optimal_slots.append({
+                "start_time": slot,
+                "end_time": (slot_time + timedelta(minutes=duration_minutes)).strftime("%H:%M"),
+                "duration": duration_minutes
+            })
+    
+    return {
+        "success": True,
+        "doctor": doctor_name,
+        "date": date,
+        "duration_required": duration_minutes,
+        "optimal_slots": optimal_slots
+    }
