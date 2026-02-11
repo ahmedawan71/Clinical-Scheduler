@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.chat import router as chat_router
+from app.routes import reminders
 
 app = FastAPI(
     title="AI Clinical Scheduling System",
@@ -18,4 +19,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(chat_router)
+app.include_router(chat_router, prefix="/api", tags=["chat"])
+app.include_router(reminders.router, prefix="/api/reminders", tags=["reminders"])
+
+@app.get("/")
+async def root():
+    return {
+        "name": "AI Clinical Scheduling System",
+        "version": "2.0.0",
+        "status": "running"
+    }
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
